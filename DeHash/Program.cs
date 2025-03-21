@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.BouncyCastle.Crypto.Digests;
+//Эта библиотека была установлена при помощи установщика пакетов NuGet. Представляет собой мобильную версию BountyCastle, используемую для создания ХЭШа Ша512
 using System.Collections.Generic;
 using System.Linq;
 
@@ -31,10 +32,13 @@ public class Sha512Cracker
 "ed451f8b3026c6236d9282ceaa6b0cba69be4c80040430fb0b65e32119bdc2bfc8debdfbe530711c94550c3b947c3fab5eac0e079cf690b0b5fd6b53bb6631c9",
 "af52cba7ccb488166d3c67d935f239339744e294da8e573ae97306e1f9c20514d9a2d3bd7ccb718b6f389ede297645bc25a502174b8b2120a1f5b743dd04301d"
     };
+    //Набор символов для генерации
     private static string charset = "0123456789abcdefghijklmnopqrstuvwxyz";
+    //Длина пароля для генерации
     private static int passwordLength = 7;
+    //Список найденных хэшей
     private static HashSet<string> foundHashes = new HashSet<string>();
-
+    //Генерация Ша512
     private static string CalculateSha512(string input)
     {
         Sha512Digest digest = new Sha512Digest();
@@ -50,7 +54,7 @@ public class Sha512Cracker
         }
         return sb.ToString();
     }
-
+    //Процедура для Крэка, принимает начало, конец массива значений и хэши 
     private static void Crack(long start, long end, string[] hashesToCrack)
     {
         long charsetSize = charset.Length;
@@ -67,7 +71,7 @@ public class Sha512Cracker
             }
             //Заккоментировать, если зеркальный порядок символов не принципиален
             char[] charArray = password.ToString().ToCharArray();
-            Array.Reverse(charArray);
+            //Array.Reverse(charArray);
 
             string finalPassword = new string(charArray);
 
@@ -91,20 +95,24 @@ public class Sha512Cracker
 
     public static void Main(string[] args)
     {
+        //Вычисление существующих комбинаций паролей -- около 75 миллиардов
         long totalCombinations = (long)Math.Pow(charset.Length, passwordLength);
+        //Число потоков
         int numThreads = Environment.ProcessorCount;
+        //Размер чанков (кусков комбинаций)
         long chunkSize = totalCombinations / numThreads;
-
+        //Создание потока
         Task[] tasks = new Task[numThreads];
         for (int i = 0; i < numThreads; i++)
         {
+            //Если конец, то конец -- число паролей, иначе высчитываем основываясь на начале
             long start = i * chunkSize;
             long end = (i == numThreads - 1) ? totalCombinations : start + chunkSize;
             tasks[i] = Task.Run(() => Crack(start, end, targetHashes));
         }
-
+        //Ожидаем выполнения всех задач
         Task.WaitAll(tasks);
-
+        //Если нашли не все хэши
         if (foundHashes.Count < targetHashes.Length)
         {
             foreach (var hash in targetHashes.Where(h => !foundHashes.Contains(h)))
